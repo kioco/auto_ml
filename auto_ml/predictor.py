@@ -43,6 +43,20 @@ from auto_ml import utils_scoring
 
 from evolutionary_search import EvolutionaryAlgorithmSearchCV
 
+# For handling parallelism edge cases
+def _pickle_method(m):
+    if m.im_self is None:
+        return getattr, (m.im_class, m.im_func.func_name)
+    else:
+        return getattr, (m.im_self, m.im_func.func_name)
+
+try:
+    import copy_reg
+    copy_reg.pickle(types.MethodType, _pickle_method)
+except:
+    import copyreg
+    copyreg.pickle(types.MethodType, _pickle_method)
+
 
 class Predictor(object):
 
