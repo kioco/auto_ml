@@ -1017,46 +1017,49 @@ class Predictor(object):
 
 
     def print_results(self, model_name, model, X, y):
-
-        if self.ml_for_analytics and model_name in ('LogisticRegression', 'RidgeClassifier', 'LinearRegression', 'Ridge'):
-            df_model_results = self._print_ml_analytics_results_linear_model(model)
-            sorted_model_results = df_model_results.sort_values(by='Coefficients', ascending=False)
-            sorted_model_results = sorted_model_results.reset_index(drop=True)
-            # only grab the top 100 features from X
-            top_features = set(sorted_model_results.head(n=100)['Feature Name'])
-
-            feature_responses = self.create_feature_responses(model, X, y, top_features)
-            self._join_and_print_analytics_results(feature_responses, sorted_model_results, sort_field='Coefficients')
-
-        elif self.ml_for_analytics and model_name in ['RandomForestClassifier', 'RandomForestRegressor', 'XGBClassifier', 'XGBRegressor', 'GradientBoostingRegressor', 'GradientBoostingClassifier', 'LGBMRegressor', 'LGBMClassifier', 'CatBoostRegressor', 'CatBoostClassifier']:
-            try:
-                df_model_results = self._print_ml_analytics_results_random_forest(model)
-                sorted_model_results = df_model_results.sort_values(by='Importance', ascending=False)
+        # This apparently fails in some cases. I'm not sure what those edge cases are, but the try/except block should at least allow the rest of the script to continue
+        try:
+            if self.ml_for_analytics and model_name in ('LogisticRegression', 'RidgeClassifier', 'LinearRegression', 'Ridge'):
+                df_model_results = self._print_ml_analytics_results_linear_model(model)
+                sorted_model_results = df_model_results.sort_values(by='Coefficients', ascending=False)
                 sorted_model_results = sorted_model_results.reset_index(drop=True)
+                # only grab the top 100 features from X
                 top_features = set(sorted_model_results.head(n=100)['Feature Name'])
 
-                if self.skip_feature_responses == True:
-                    feature_responses = None
-                else:
-                    feature_responses = self.create_feature_responses(model, X, y, top_features)
-                self._join_and_print_analytics_results(feature_responses, sorted_model_results, sort_field='Importance')
-            except AttributeError as e:
-                if model_name == 'XGBRegressor':
-                    pass
-                else:
-                    raise(e)
+                feature_responses = self.create_feature_responses(model, X, y, top_features)
+                self._join_and_print_analytics_results(feature_responses, sorted_model_results, sort_field='Coefficients')
+
+            elif self.ml_for_analytics and model_name in ['RandomForestClassifier', 'RandomForestRegressor', 'XGBClassifier', 'XGBRegressor', 'GradientBoostingRegressor', 'GradientBoostingClassifier', 'LGBMRegressor', 'LGBMClassifier', 'CatBoostRegressor', 'CatBoostClassifier']:
+                try:
+                    df_model_results = self._print_ml_analytics_results_random_forest(model)
+                    sorted_model_results = df_model_results.sort_values(by='Importance', ascending=False)
+                    sorted_model_results = sorted_model_results.reset_index(drop=True)
+                    top_features = set(sorted_model_results.head(n=100)['Feature Name'])
+
+                    if self.skip_feature_responses == True:
+                        feature_responses = None
+                    else:
+                        feature_responses = self.create_feature_responses(model, X, y, top_features)
+                    self._join_and_print_analytics_results(feature_responses, sorted_model_results, sort_field='Importance')
+                except AttributeError as e:
+                    if model_name == 'XGBRegressor':
+                        pass
+                    else:
+                        raise(e)
 
 
-        else:
-            feature_responses = self.create_feature_responses(model, X, y)
-            feature_responses['FR_Incrementing_abs'] = np.absolute(feature_responses.FR_Incrementing)
-            feature_responses = feature_responses.sort_values(by='FR_Incrementing_abs', ascending=False)
-            feature_responses = feature_responses.reset_index(drop=True)
-            feature_responses = feature_responses.head(n=100)
-            feature_responses = feature_responses.sort_values(by='FR_Incrementing_abs', ascending=True)
-            feature_responses = feature_responses[['Feature Name', 'Delta', 'FR_Decrementing', 'FR_Incrementing', 'FRD_MAD', 'FRI_MAD']]
-            print('Here are our feature responses for the trained model')
-            print(tabulate(feature_responses, headers='keys', floatfmt='.4f', tablefmt='psql'))
+            else:
+                feature_responses = self.create_feature_responses(model, X, y)
+                feature_responses['FR_Incrementing_abs'] = np.absolute(feature_responses.FR_Incrementing)
+                feature_responses = feature_responses.sort_values(by='FR_Incrementing_abs', ascending=False)
+                feature_responses = feature_responses.reset_index(drop=True)
+                feature_responses = feature_responses.head(n=100)
+                feature_responses = feature_responses.sort_values(by='FR_Incrementing_abs', ascending=True)
+                feature_responses = feature_responses[['Feature Name', 'Delta', 'FR_Decrementing', 'FR_Incrementing', 'FRD_MAD', 'FRI_MAD']]
+                print('Here are our feature responses for the trained model')
+                print(tabulate(feature_responses, headers='keys', floatfmt='.4f', tablefmt='psql'))
+        except:
+            pass
 
 
     def fit_grid_search(self, X_df, y, gs_params, feature_learning=False, refit=False):
