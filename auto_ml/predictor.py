@@ -1135,7 +1135,7 @@ class Predictor(object):
                 tournament_size=tournament_size,
                 generations_number=generations_number,
                 # Do not fit the best estimator on all the data- we will do that later, possibly after increasing epochs or n_estimators
-                refit=True
+                refit=refit
 
             )
 
@@ -1268,9 +1268,6 @@ class Predictor(object):
                     else:
                         model_name = estimator_names[idx]
 
-            print('best_params')
-            print(best_params)
-
             # Now that we've got the best model, train it on quite a few more iterations/epochs/trees if applicable
             cleaned_best_params = {}
             for k, v in best_params.items():
@@ -1285,21 +1282,15 @@ class Predictor(object):
             if 'epochs' in best_params:
                 epochs = self.training_params.get('epochs', 1000)
                 best_params['epochs'] = epochs
-                # We are overwriting the user's input with whatever the best params were
-            elif 'n_estimators' in best_params and model_name in ['LGBMClassifier', 'LGBMRegressor', 'GradientBoostingClassifier', 'GradientBoostingRegressor']:
-                n_estimators = self.training_params.get('n_estimators', 2000)
-                best_params['n_estimators'] = n_estimators
 
-            print('estimator_names')
-            print(estimator_names)
             self.training_params = best_params
 
             trained_final_model = self.fit_single_pipeline(X_df, y, model_name, feature_learning=feature_learning, prediction_interval=False)
 
             # Don't report feature_responses (or nearly anything else) if this is just the feature_learning stage
             # That saves a considerable amount of time
-            if feature_learning == False:
-                self.print_results(model_name, trained_final_model, X_df, y)
+            # if feature_learning == False:
+            #     self.print_results(model_name, trained_final_model, X_df, y)
 
             # If we wanted to do something tricky, here would be the place to do it
                 # Train the final model up on more epochs, or with more trees
